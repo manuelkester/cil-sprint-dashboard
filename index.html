@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CIL Sprint Team Dashboard</title>
+<style>
+  :root{--surface-page:#f9f9f7;--surface-card:#fcfcfb;--surface-hover:#f3f2ef;--border:rgba(11,11,11,.10);--text-primary:#0b0b0b;--text-secondary:#52514e;--text-muted:#898781;--gridline:#e1e0d9;--c-todo:#898781;--c-inprog:#2a78d6;--c-review:#eda100;--c-aigen:#e87ba4;--c-done:#1baf7a;--shadow-card:0 1px 3px rgba(11,11,11,.08),0 1px 2px rgba(11,11,11,.04)}
+  [data-theme="dark"]{--surface-page:#0d0d0d;--surface-card:#1a1a19;--surface-hover:#242422;--border:rgba(255,255,255,.10);--text-primary:#fff;--text-secondary:#c3c2b7;--text-muted:#898781;--gridline:#2c2c2a;--c-todo:#898781;--c-inprog:#3987e5;--c-review:#c98500;--c-aigen:#d55181;--c-done:#199e70;--shadow-card:0 1px 4px rgba(0,0,0,.4)}
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-size:14px;background:var(--surface-page);color:var(--text-primary);line-height:1.5;min-height:100vh}
+  .header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;background:var(--surface-card);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100;flex-wrap:wrap;gap:10px}
+  .header-left h1{font-size:18px;font-weight:600;letter-spacing:-.02em}
+  .header-left p{font-size:12px;color:var(--text-muted);margin-top:2px}
+  .header-right{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .last-updated{font-size:12px;color:var(--text-muted)}
+  .btn-refresh{display:flex;align-items:center;gap:6px;padding:7px 14px;background:#2a78d6;color:#fff;border:none;border-radius:6px;font-size:13px;font-weight:500;cursor:pointer;transition:background .15s,opacity .15s;font-family:inherit}
+  .btn-refresh:hover{background:#256abf}.btn-refresh:active{background:#1c5cab}.btn-refresh:disabled{opacity:.55;cursor:not-allowed}
+  .btn-refresh svg{width:14px;height:14px;transition:transform .6s}.btn-refresh.loading svg{animation:spin .9s linear infinite}
+  .btn-theme{padding:7px 10px;background:transparent;border:1px solid var(--border);border-radius:6px;cursor:pointer;color:var(--text-secondary);font-size:15px;line-height:1;font-family:inherit;transition:background .15s}
+  .btn-theme:hover{background:var(--surface-hover)}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .kpi-strip{display:flex;gap:12px;padding:16px 24px;overflow-x:auto}
+  .kpi-card{flex:1;min-width:130px;background:var(--surface-card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;box-shadow:var(--shadow-card)}
+  .kpi-label{font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px;display:flex;align-items:center;gap:5px}
+  .kpi-label .dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .kpi-value{font-size:28px;font-weight:700;letter-spacing:-.03em;line-height:1}
+  .kpi-sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+  .main{padding:0 24px 32px;display:flex;flex-direction:column;gap:20px}
+  .section-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px}
+  .section-title{font-size:13px;font-weight:600;color:var(--text-secondary);letter-spacing:.04em;text-transform:uppercase}
+  .legend{display:flex;gap:14px;flex-wrap:wrap}
+  .legend-item{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--text-secondary)}
+  .legend-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+  .team-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px}
+  .team-card{background:var(--surface-card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;box-shadow:var(--shadow-card);cursor:pointer;transition:box-shadow .15s,background .15s}
+  .team-card:hover{background:var(--surface-hover)}.team-card.active{border-color:#2a78d6;box-shadow:0 0 0 2px rgba(42,120,214,.20)}
+  .team-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px}
+  .team-name{font-size:15px;font-weight:600;letter-spacing:-.01em}
+  .team-sprint{font-size:11px;color:var(--text-muted);margin-top:2px}
+  .team-total{font-size:22px;font-weight:700;line-height:1;text-align:right}
+  .team-total-label{font-size:10px;color:var(--text-muted);text-align:right}
+  .bar-track{height:10px;border-radius:5px;background:var(--gridline);overflow:hidden;display:flex;gap:2px;margin-bottom:8px}
+  .bar-seg{height:100%;min-width:2px;transition:opacity .15s}.bar-seg:first-child{border-radius:5px 0 0 5px}.bar-seg:last-child{border-radius:0 5px 5px 0}
+  .status-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+  .status-pill{display:flex;align-items:center;gap:4px;padding:2px 7px;border-radius:99px;font-size:11px;font-weight:500;background:var(--surface-hover);color:var(--text-secondary);border:1px solid var(--border)}
+  .status-pill .dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+  .ticket-panel{background:var(--surface-card);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow-card);overflow:hidden;display:none}
+  .ticket-panel.visible{display:block}
+  .ticket-panel-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+  .ticket-panel-title{font-size:14px;font-weight:600}
+  .ticket-panel-close{background:none;border:none;font-size:18px;cursor:pointer;color:var(--text-muted);font-family:inherit;padding:2px 6px;border-radius:4px;transition:background .12s}
+  .ticket-panel-close:hover{background:var(--surface-hover)}
+  .filter-bar{display:flex;gap:8px;padding:10px 16px;border-bottom:1px solid var(--gridline);flex-wrap:wrap;align-items:center}
+  .filter-label{font-size:12px;color:var(--text-muted)}
+  .filter-btn{padding:3px 10px;border-radius:99px;border:1px solid var(--border);background:transparent;font-size:12px;cursor:pointer;color:var(--text-secondary);font-family:inherit;transition:background .12s,border-color .12s}
+  .filter-btn:hover{background:var(--surface-hover)}.filter-btn.active{background:#2a78d6;color:#fff;border-color:#2a78d6}
+  .ticket-table-wrap{overflow-x:auto;max-height:420px;overflow-y:auto}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  thead tr{position:sticky;top:0;background:var(--surface-card);z-index:2}
+  th{text-align:left;padding:8px 12px;font-size:11px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap}
+  td{padding:7px 12px;border-bottom:1px solid var(--gridline);vertical-align:middle}
+  tr:last-child td{border-bottom:none}tr:hover td{background:var(--surface-hover)}
+  .td-key{font-weight:600;color:#2a78d6;white-space:nowrap;font-size:11px}
+  [data-theme="dark"] .td-key{color:#3987e5}
+  .td-summary{max-width:380px}.td-summary span{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .td-type,.td-assignee,.td-created{white-space:nowrap;font-size:11px;color:var(--text-secondary)}
+  .td-created{color:var(--text-muted)}
+  .badge{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:99px;font-size:10px;font-weight:600;white-space:nowrap}
+  .badge .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+  .status-bar{display:flex;align-items:center;gap:8px;padding:8px 16px;background:var(--surface-hover);border-bottom:1px solid var(--gridline);font-size:12px;color:var(--text-muted)}
+  .status-bar a{color:#2a78d6;text-decoration:none}.status-bar a:hover{text-decoration:underline}
+  .status-dot{width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px;flex-shrink:0}
+  .status-dot.running{background:#eda100;animation:pulse .9s ease-in-out infinite}
+  .status-dot.done{background:#1baf7a}.status-dot.failed{background:#e34948}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .toast{position:fixed;bottom:20px;right:24px;background:var(--surface-card);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;box-shadow:0 4px 16px rgba(11,11,11,.15);transform:translateY(60px);opacity:0;transition:transform .25s,opacity .25s;z-index:999;max-width:320px}
+  .toast.show{transform:translateY(0);opacity:1}
+  .toast-title{font-weight:600;margin-bottom:2px}.toast-msg{color:var(--text-secondary);font-size:12px}
+  @media(max-width:600px){.kpi-strip{gap:8px;padding:12px}.team-grid{grid-template-columns:1fr}.main{padding:0 12px 24px}}
+</style>
+</head>
+<body>
+<header class="header">
+  <div class="header-left">
+    <h1>CIL Sprint Team Dashboard</h1>
+    <p id="headerSub">Integration Layer &middot; Active sprints &middot; Loading&hellip;</p>
+  </div>
+  <div class="header-right">
+    <span class="last-updated" id="lastUpdated">Loading&hellip;</span>
+    <button class="btn-theme" id="themeToggle" title="Toggle dark mode">&#x1F319;</button>
+    <button class="btn-refresh" id="refreshBtn" onclick="triggerRefresh()">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13.5 8A5.5 5.5 0 1 1 10 2.9"/><polyline points="10 1 10 4 13 4"/></svg>
+      Refresh Data
+    </button>
+  </div>
+</header>
+<div id="runStatusBar" class="status-bar" style="display:none"></div>
+<div class="kpi-strip">
+  <div class="kpi-card"><div class="kpi-label"><span class="dot" style="background:var(--text-muted)"></span>Total Tickets</div><div class="kpi-value" id="kpiTotal">&mdash;</div><div class="kpi-sub" id="kpiTeams">&mdash;</div></div>
+  <div class="kpi-card"><div class="kpi-label"><span class="dot" style="background:var(--c-inprog)"></span>In Progress</div><div class="kpi-value" id="kpiInProg">&mdash;</div><div class="kpi-sub" id="kpiInProgPct">&mdash;</div></div>
+  <div class="kpi-card"><div class="kpi-label"><span class="dot" style="background:var(--c-review)"></span>In Review</div><div class="kpi-value" id="kpiReview">&mdash;</div><div class="kpi-sub" id="kpiReviewPct">&mdash;</div></div>
+  <div class="kpi-card"><div class="kpi-label"><span class="dot" style="background:var(--c-aigen)"></span>AI-Gen Pipeline</div><div class="kpi-value" id="kpiAi">&mdash;</div><div class="kpi-sub" id="kpiAiPct">&mdash;</div></div>
+  <div class="kpi-card"><div class="kpi-label"><span class="dot" style="background:var(--c-done)"></span>Done</div><div class="kpi-value" id="kpiDone">&mdash;</div><div class="kpi-sub" id="kpiDonePct">&mdash;</div></div>
+</div>
+<main class="main">
+  <div>
+    <div class="section-header">
+      <span class="section-title">Teams &middot; Active Sprints</span>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--c-todo)"></div>To Do</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--c-inprog)"></div>In Progress</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--c-review)"></div>In Review</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--c-aigen)"></div>AI-Gen</div>
+        <div class="legend-item"><div class="legend-swatch" style="background:var(--c-done)"></div>Done</div>
+      </div>
+    </div>
+    <div class="team-grid" id="teamGrid"></div>
+  </div>
+  <div class="ticket-panel" id="ticketPanel">
+    <div class="ticket-panel-header">
+      <div class="ticket-panel-title" id="panelTitle">Tickets</div>
+      <button class="ticket-panel-close" onclick="closePanel()">&#x2715;</button>
+    </div>
+    <div class="filter-bar">
+      <span class="filter-label">Status:</span>
+      <button class="filter-btn active" data-filter="all" onclick="applyFilter('all',this)">All</button>
+      <button class="filter-btn" data-filter="To Do" onclick="applyFilter('To Do',this)">To Do</button>
+      <button class="filter-btn" data-filter="In Progress" onclick="applyFilter('In Progress',this)">In Progress</button>
+      <button class="filter-btn" data-filter="In Review" onclick="applyFilter('In Review',this)">In Review</button>
+      <button class="filter-btn" data-filter="AI-Gen Done" onclick="applyFilter('AI-Gen Done',this)">AI-Gen</button>
+      <button class="filter-btn" data-filter="Done" onclick="applyFilter('Done',this)">Done</button>
+    </div>
+    <div class="ticket-table-wrap">
+      <table><thead><tr><th>Key</th><th>Type</th><th style="min-width:260px">Summary</th><th>Status</th><th>Assignee</th><th>Created</th></tr></thead>
+      <tbody id="ticketTableBody"></tbody></table>
+    </div>
+  </div>
+</main>
+<div class="toast" id="toast"><div class="toast-title" id="toastTitle"></div><div class="toast-msg" id="toastMsg"></div></div>
+<script>
+const OWNER='manuelkester',REPO='cil-sprint-dashboard';
+const BASE='https://raw.githubusercontent.com/'+OWNER+'/'+REPO+'/main/data';
+let TEAMS=[],TICKETS=[],activeTeam=null,activeFilter='all';
+const SB=s=>{if(!s)return'To Do';if(['Done','Closed'].includes(s))return'Done';if(['In Progress','QA In Progress','AI-Generation In Progress'].includes(s))return'In Progress';if(['In Code Review','Waiting For Merge','IN Integration','In Validation','Deploy to QA','Deploy to UAT','Ready for Prod','IN PREVALIDATION'].includes(s))return'In Review';if(['AI-Generation Done','To Auto-Generate'].includes(s))return'AI-Gen Done';return'To Do';};
+const BV={'To Do':'--c-todo','In Progress':'--c-inprog','In Review':'--c-review','AI-Gen Done':'--c-aigen','Done':'--c-done'};
+const bc=s=>'var('+(BV[SB(s)]||'--c-todo')+')';
+const h=s=>String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+async function loadData(){
+  const q='?t='+Date.now();
+  const[tr,kr,mr]=await Promise.all([fetch(BASE+'/teams.json'+q),fetch(BASE+'/tickets.json'+q),fetch(BASE+'/meta.json'+q)]);
+  TEAMS=await tr.json();TICKETS=await kr.json();
+  const m=await mr.json();
+  document.getElementById('lastUpdated').textContent='Last updated: '+new Date(m.updatedAt).toLocaleString();
+  document.getElementById('headerSub').textContent='Integration Layer \xb7 Active sprints \xb7 Project CIL \xb7 '+m.total+' tickets across '+m.teams+' teams';
+  render();
+}
+function render(){
+  const tot=TEAMS.reduce((a,b)=>a+b.total,0),ip=TEAMS.reduce((a,b)=>a+b.inProgress,0),rv=TEAMS.reduce((a,b)=>a+b.inReview,0),ai=TEAMS.reduce((a,b)=>a+b.aiGenDone,0),dn=TEAMS.reduce((a,b)=>a+b.done,0);
+  const p=n=>tot?Math.round(n/tot*100)+'%':'—';
+  document.getElementById('kpiTotal').textContent=tot;document.getElementById('kpiTeams').textContent=TEAMS.length+' active teams';
+  document.getElementById('kpiInProg').textContent=ip;document.getElementById('kpiInProgPct').textContent=p(ip)+' of total';
+  document.getElementById('kpiReview').textContent=rv;document.getElementById('kpiReviewPct').textContent=p(rv)+' of total';
+  document.getElementById('kpiAi').textContent=ai;document.getElementById('kpiAiPct').textContent=p(ai)+' of total';
+  document.getElementById('kpiDone').textContent=dn;document.getElementById('kpiDonePct').textContent=p(dn)+' of total';
+  renderGrid();
+}
+function renderGrid(){
+  const g=document.getElementById('teamGrid');g.innerHTML='';
+  [...TEAMS].sort((a,b)=>b.total-a.total).forEach(t=>{
+    const c=document.createElement('div');c.className='team-card'+(activeTeam===t.team?' active':'');
+    c.setAttribute('role','button');c.setAttribute('tabindex','0');
+    c.addEventListener('click',()=>selectTeam(t.team));
+    c.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' ')selectTeam(t.team);});
+    const segs=[{val:t.todo,color:'var(--c-todo)',label:'To Do'},{val:t.inProgress,color:'var(--c-inprog)',label:'In Progress'},{val:t.inReview,color:'var(--c-review)',label:'In Review'},{val:t.aiGenDone,color:'var(--c-aigen)',label:'AI-Gen'},{val:t.done,color:'var(--c-done)',label:'Done'}].filter(s=>s.val>0);
+    const bar=segs.map(s=>'<div class="bar-seg" style="background:'+s.color+';flex:'+s.val+'" title="'+s.label+': '+s.val+'"></div>').join('');
+    const pills=segs.map(s=>'<div class="status-pill"><div class="dot" style="background:'+s.color+'"></div>'+s.label+' <b>'+s.val+'</b></div>').join('');
+    const dr=t.total?Math.round(t.done/t.total*100):0;
+    c.innerHTML='<div class="team-card-header"><div><div class="team-name">'+h(t.team)+'</div><div class="team-sprint">'+h(t.sprint)+'</div></div><div><div class="team-total">'+t.total+'</div><div class="team-total-label">'+dr+'% done</div></div></div><div class="bar-track">'+bar+'</div><div class="status-row">'+pills+'</div>';
+    g.appendChild(c);
+  });
+}
+function selectTeam(name){
+  if(activeTeam===name){closePanel();return;}
+  activeTeam=name;activeFilter='all';
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active',b.dataset.filter==='all'));
+  renderGrid();renderPanel();
+  const p=document.getElementById('ticketPanel');p.classList.add('visible');p.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+function closePanel(){activeTeam=null;document.getElementById('ticketPanel').classList.remove('visible');renderGrid();}
+function applyFilter(f,btn){activeFilter=f;document.querySelectorAll('.filter-btn').forEach(b=>b.classList.toggle('active',b===btn));renderPanel();}
+function renderPanel(){
+  const t=TEAMS.find(x=>x.team===activeTeam);
+  document.getElementById('panelTitle').textContent=activeTeam+' \xb7 '+(t&&t.sprint||'')+' \xb7 '+(t&&t.total||0)+' tickets';
+  const tix=TICKETS.filter(x=>x.team===activeTeam);
+  const fil=activeFilter==='all'?tix:tix.filter(x=>SB(x.status)===activeFilter);
+  const tb=document.getElementById('ticketTableBody');
+  if(!tix.length){tb.innerHTML='<tr><td colspan="6" style="padding:24px;text-align:center;color:var(--text-muted)">No tickets found for this team.</td></tr>';return;}
+  if(!fil.length){tb.innerHTML='<tr><td colspan="6" style="padding:16px;text-align:center;color:var(--text-muted)">No tickets match this filter.</td></tr>';return;}
+  tb.innerHTML=fil.map(function(t){return'<tr><td class="td-key">'+h(t.key)+'</td><td class="td-type">'+h(t.type)+'</td><td class="td-summary"><span>'+h(t.summary)+'</span></td><td><span class="badge"><span class="dot" style="background:'+bc(t.status)+'"></span>'+h(t.status)+'</span></td><td class="td-assignee">'+h(t.assignee)+'</td><td class="td-created">'+h(t.created)+'</td></tr>';}).join('');
+}
+async function triggerRefresh(){
+  const btn=document.getElementById('refreshBtn');btn.disabled=true;btn.classList.add('loading');
+  showToast('Triggering refresh…','Dispatching GitHub Actions workflow…');
+  const tok=localStorage.getItem('gh_token')||'';
+  const hdr={'Accept':'application/vnd.github+json','Content-Type':'application/json'};
+  if(tok)hdr['Authorization']='token '+tok;
+  try{
+    const r=await fetch('https://api.github.com/repos/'+OWNER+'/'+REPO+'/actions/workflows/refresh.yml/dispatches',{method:'POST',headers:hdr,body:JSON.stringify({ref:'main'})});
+    if(r.status===204){showToast('Refresh started!','Fetching live Jira data… dashboard updates automatically (~60 s)',8000);setTimeout(()=>pollForRun(0),5000);}
+    else if(r.status===401||r.status===403){showToast('Auth required','Run in browser console: localStorage.setItem("gh_token","github_pat_...")',8000);btn.disabled=false;btn.classList.remove('loading');}
+    else throw new Error('HTTP '+r.status);
+  }catch(e){showToast('Could not trigger',e.message,6000);btn.disabled=false;btn.classList.remove('loading');}
+}
+async function pollForRun(n){
+  if(n>40){resetBtn();showToast('Timeout','Refresh took too long — reload manually.',5000);return;}
+  try{
+    const tok=localStorage.getItem('gh_token')||'';
+    const hdr={'Accept':'application/vnd.github+json'};if(tok)hdr['Authorization']='token '+tok;
+    const r=await fetch('https://api.github.com/repos/'+OWNER+'/'+REPO+'/actions/runs?per_page=5',{headers:hdr});
+    const d=await r.json();
+    const run=(d.workflow_runs||[]).find(x=>x.name==='Refresh Jira Data');
+    if(run){
+      const bar=document.getElementById('runStatusBar');bar.style.display='flex';
+      if(run.status==='completed'){
+        if(run.conclusion==='success'){bar.innerHTML='<span class="status-dot done"></span> Workflow completed — reloading data…';await loadData();bar.style.display='none';resetBtn();showToast('Dashboard updated!','Latest Jira data loaded.',4000);if(activeTeam)renderPanel();return;}
+        else{bar.innerHTML='<span class="status-dot failed"></span> Workflow failed ('+run.conclusion+'). <a href="'+run.html_url+'" target="_blank">View logs</a>';resetBtn();return;}
+      }else{bar.innerHTML='<span class="status-dot running"></span> Refreshing Jira data… ('+run.status+') <a href="'+run.html_url+'" target="_blank">View run</a>';}
+    }
+  }catch(e){}
+  setTimeout(()=>pollForRun(n+1),4000);
+}
+function resetBtn(){const b=document.getElementById('refreshBtn');b.disabled=false;b.classList.remove('loading');}
+let tt;function showToast(title,msg,dur){dur=dur||3500;const e=document.getElementById('toast');document.getElementById('toastTitle').textContent=title;document.getElementById('toastMsg').textContent=msg;e.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>e.classList.remove('show'),dur);}
+document.getElementById('themeToggle').addEventListener('click',()=>{const d=document.documentElement.dataset.theme==='dark';document.documentElement.dataset.theme=d?'light':'dark';document.getElementById('themeToggle').textContent=d?'🌙':'☀️';});
+loadData();
+</script>
+</body>
+</html>
